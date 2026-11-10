@@ -1,0 +1,27 @@
+# Maven build files
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Local application configuration with secrets
+application-local.properties
+application-local.yml
+
+# Logs
+*.log
+logs/
+
+# Operating system files
+.DS_Store
+Thumbs.dbsrc/main/resources/application.properties
+src/main/resources/application.properties
