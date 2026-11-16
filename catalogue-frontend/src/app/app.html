@@ -1,0 +1,62 @@
+
+<div class="container">
+
+  <header>
+    <h1>Assistant Boutique IA</h1>
+    <p>Angular + Spring Boot + Mistral AI</p>
+  </header>
+
+  <main class="chat-box">
+
+    @for (message of messages(); track $index) {
+      <div
+        class="message"
+        [class.user]="message.type === 'user'"
+        [class.bot]="message.type === 'bot'">
+        {{ message.texte }}
+      </div>
+    }
+
+    @if (chargement()) {
+      <div class="message bot">
+        L'agent réfléchit...
+      </div>
+    }
+
+  </main>
+
+  <section class="quick-actions">
+    <button
+      [disabled]="chargement()"
+      (click)="afficherProduits()">
+      Voir les produits
+    </button>
+
+    <button
+      [disabled]="chargement()"
+      (click)="envoyer('Donne-moi les statistiques du catalogue')">
+      Statistiques
+    </button>
+
+    <button
+      [disabled]="chargement()"
+      (click)="envoyer('Quels produits sont disponibles ?')">
+      Rechercher
+    </button>
+  </section>
+
+  <form (ngSubmit)="envoyer()" class="chat-form">
+    <input
+      type="text"
+      name="question"
+      [(ngModel)]="question"
+      [disabled]="chargement()"
+      placeholder="Posez votre question..."
+    />
+
+    <button type="submit" [disabled]="chargement() || !question.trim()">
+      Envoyer
+    </button>
+  </form>
+
+</div>

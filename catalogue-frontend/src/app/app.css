@@ -1,0 +1,139 @@
+
+:host {
+  display: block;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: #f3f6fb;
+  padding: 35px 15px;
+  box-sizing: border-box;
+}
+
+.container {
+  max-width: 850px;
+  height: 85vh;
+  min-height: 500px;
+  margin: auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  background: #2563eb;
+  color: white;
+  padding: 24px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: 25px;
+}
+
+header p {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.chat-box {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.message {
+  max-width: 75%;
+  padding: 13px 17px;
+  border-radius: 14px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.bot {
+  align-self: flex-start;
+  background: #e9eef5;
+  color: #1f2937;
+}
+
+.user {
+  align-self: flex-end;
+  background: #2563eb;
+  color: white;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  flex-wrap: wrap;
+}
+
+.quick-actions button {
+  background: white;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  padding: 9px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.quick-actions button:hover {
+  background: #eff6ff;
+}
+
+.chat-form {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.chat-form button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 24px;
+  cursor: pointer;
+}
+
+.chat-form button:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 600px) {
+  :host {
+    padding: 10px;
+  }
+
+  .container {
+    height: calc(100vh - 20px);
+    min-height: 0;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  footer {
+    padding: 12px;
+  }
+
+  .chat-form button {
+    padding: 0 14px;
+  }
+}
