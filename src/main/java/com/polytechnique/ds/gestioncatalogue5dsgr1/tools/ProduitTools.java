@@ -7,11 +7,11 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 import com.polytechnique.ds.gestioncatalogue5dsgr1.entites.Categorie;
 import com.polytechnique.ds.gestioncatalogue5dsgr1.repository.CategorieRepository;
-import org.springframework.ai.tool.annotation.ToolParam;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
+import java.util.HashMap;
 
 @Component
 
@@ -48,19 +48,20 @@ public class ProduitTools {
 
         return produitRepository.findAll();
     }
-   // @Tool(
-        //    name = "addProduct",
-        //    description = "Ajoute un produit dans PostgreSQL uniquement après "
-           //         + "confirmation explicite de l'utilisateur. "
-            //        + "Nécessite un nom, un prix, une quantité et un ID de catégorie."
-   // )
+
+    // @Tool(
+    //    name = "addProduct",
+    //    description = "Ajoute un produit dans PostgreSQL uniquement après "
+    //         + "confirmation explicite de l'utilisateur. "
+    //        + "Nécessite un nom, un prix, une quantité et un ID de catégorie."
+    // )
     public String addProduct(
             @ToolParam(description = "Nom du produit") String nom,
             @ToolParam(description = "Prix du produit") double prix,
             @ToolParam(description = "Quantité disponible") int quantite,
             @ToolParam(description = "ID de la catégorie") Long categorieId) {
 
-        if (nom == null || nom.isBlank() || prix < 0 || quantite < 0) {
+        if (nom == null || nom.isBlank() || !Double.isFinite(prix) || prix <= 0 || quantite < 0) {
             return "Erreur : informations du produit invalides.";
         }
 
@@ -86,6 +87,7 @@ public class ProduitTools {
 
         return "Produit ajouté avec succès. ID : " + saved.getId();
     }
+
     @Tool(
             name = "prepareProduct",
             description = "Prépare l'ajout d'un produit sans l'enregistrer. " +
@@ -97,7 +99,7 @@ public class ProduitTools {
             @ToolParam(description = "Quantité du produit") int quantite,
             @ToolParam(description = "ID de la catégorie") Long categorieId) {
 
-        if (nom == null || nom.isBlank() || prix < 0 || quantite < 0) {
+        if (nom == null || nom.isBlank() || !Double.isFinite(prix) || prix <= 0 || quantite < 0) {
             return "Erreur : informations invalides.";
         }
 
@@ -121,23 +123,119 @@ public class ProduitTools {
                 ", catégorie ID : " + categorieId +
                 ". Demander à l'utilisateur de confirmer.";
     }
+
     public synchronized String confirmProduct(String reference) {
 
         if (reference == null || reference.isBlank()) {
             return "Erreur : référence obligatoire.";
         }
 
-        PendingProduct pending = pendingProducts.remove(reference);
+        PendingProduct pending = pendingProducts.get(reference);
 
         if (pending == null) {
             return "Erreur : proposition introuvable ou déjà confirmée.";
         }
 
-        return addProduct(
+        String result = addProduct(
                 pending.nom(),
                 pending.prix(),
                 pending.quantite(),
                 pending.categorieId()
         );
+
+        if (!result.startsWith("Erreur :")) {
+            pendingProducts.remove(reference, pending);
+        }
+
+        return result;
     }
+
+    @Tool(
+            name = "getStatistiques",
+            description = "Fournir des statistiques détaillées sur notre catalogue de produits, notamment le nombre total de produits, le prix moyen, ainsi que les produits les plus chers et les moins chers."
+    )
+    public Map<String, Object> getStatistiques() {
+
+        List<Produit> liste = produitRepository.findAll();
+
+        Map<String, Object> map = new HashMap<>();
+
+        // Nombre total de produits
+        map.put("nombre de produits total", liste.size());
+
+        // Prix moyen
+        map.put("prix moyen", liste.stream()
+                .mapToDouble(p -> p.getPrix())
+                .average()
+                .orElse(0));
+
+        // Produit le plus cher
+        map.put("produit le plus cher", liste.stream()
+                .max((p1, p2) -> Double.compare(p1.getPrix(), p2.getPrix()))
+                .orElse(null));
+
+        // Produit le moins cher
+        map.put("produit le moins cher", liste.stream()
+                .min((p1, p2) -> Double.compare(p1.getPrix(), p2.getPrix()))
+                .orElse(null));
+
+        return map;
+    }
+
+    public Produit createProduct(
+
+            @ToolParam(description = "Nom du produit", required = true)
+            String nom,
+
+            @ToolParam(description = "Prix en dinars, strictement positif", required = true)
+            double prix,
+
+            @ToolParam(description = "Quantité en stock", required = true)
+            int quantite,
+
+            @ToolParam(description = "Nom de la catégorie existante", required = true)
+            String nomCategorie) {
+
+        // 1. Validation
+        if (nom == null || nom.isBlank()) {
+            throw new IllegalArgumentException("Le nom du produit est obligatoire.");
+        }
+
+        if (!Double.isFinite(prix) || prix <= 0) {
+            throw new IllegalArgumentException("Le prix doit être strictement positif.");
+        }
+
+        if (quantite < 0) {
+            throw new IllegalArgumentException("La quantité ne peut pas être négative.");
+        }
+
+        if (nomCategorie == null || nomCategorie.isBlank()) {
+            throw new IllegalArgumentException("La catégorie est obligatoire.");
+        }
+
+        // 2. Rechercher une catégorie existante
+        Categorie categorie = categorieRepository.findAll()
+                .stream()
+                .filter(c -> c.getNom().equalsIgnoreCase(nomCategorie.trim()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Catégorie introuvable.")
+                );
+
+        // 3. Créer le produit
+        Produit nouveauProduit = new Produit();
+
+        nouveauProduit.setNom(nom);
+        nouveauProduit.setPrix(prix);
+        nouveauProduit.setQuantite(quantite);
+        nouveauProduit.setCategorie(categorie);
+
+        // 4. Enregistrer dans PostgreSQL
+        return produitRepository.save(nouveauProduit);
+    }
+
+
+
+
+
 }

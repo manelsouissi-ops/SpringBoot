@@ -15,6 +15,7 @@ import java.util.List;
 public class Categorie {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(unique = true)
     private String nom;
     @OneToMany(mappedBy = "categorie",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonIgnore

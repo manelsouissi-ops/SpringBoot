@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">  <!-- Indispensable pour afficher correctement les accents -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">  <!-- Affichage adapté au mobile -->
+    <title>Assistant Boutique</title>
+    <!-- Bootstrap 5 chargé depuis un CDN : aucune installation, juste un lien -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- marked : convertit le Markdown du LLM (**gras**, listes...) en HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <!-- DOMPurify : nettoie ce HTML (supprime tout script dangereux) avant affichage -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <style>
+        /* Les seules règles personnalisées (Bootstrap n'a pas de classe équivalente) */
+        .msg { max-width: 80%; }
+        .msg > :last-child { margin-bottom: 0; }   /* Pas de marge vide en bas des bulles */
+        .msg h1, .msg h2, .msg h3 { font-size: 1rem; font-weight: bold; }  /* Titres Markdown discrets */
+        .card, #messages { min-height: 0; }        /* Permet à la zone des messages de défiler */
+    </style>
+</head>
+<body class="bg-light">
+
+<!-- container + vh-100 : colonne centrée qui occupe toute la hauteur de l'écran -->
+<div class="container d-flex flex-column vh-100 py-3" style="max-width: 760px">
+    <div class="card flex-grow-1 shadow-sm">
+
+        <div class="card-header bg-primary text-white fw-bold">&#129302; Assistant Boutique IA</div>
+
+        <!-- Zone des messages : overflow-auto fait défiler, gap-2 espace les bulles -->
+        <div id="messages" class="card-body d-flex flex-column gap-2 overflow-auto">
+            <div class="msg align-self-start bg-body-secondary rounded-3 px-3 py-2">Bonjour ! Posez-moi vos questions sur le catalogue.</div>
+        </div>
+
+        <div class="card-footer bg-white">
+            <!-- Questions rapides : chaque bouton appelle directement ask(...) -->
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="ask('Quels sont vos produits ?')">Tous les produits</button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="ask('Avez-vous des ecrans ?')">Ecrans</button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="ask('Quel est le prix moyen de vos articles ?')">Statistiques</button>
+                <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="ask('Quelle est la capitale du Bresil ?')">Anti-hallucination</button>
+            </div>
+
+            <!-- input-group : colle le champ de saisie et le bouton Envoyer -->
+            <form id="form" class="input-group">
+                <input id="input" class="form-control" placeholder="Votre question..." autocomplete="off">
+                <button class="btn btn-primary">Envoyer</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Références vers les éléments HTML manipulés par le script
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+
+    // Envoi du formulaire : on bloque le rechargement de la page puis on pose la question
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      ask(input.value);
+    });
+
+    // Fonction principale : envoie la question à l'agent et affiche sa réponse
+    async function ask(question) {
+      question = question.trim();
+      if (!question) return;            // Ignore les questions vides
+      input.value = '';
+      addMessage('user', question);     // 1. Affiche la question de l'utilisateur
+
+      // 2. Bulle d'attente : spinner Bootstrap + compteur de secondes
+      const bubble = addMessage('bot', '');
+      let seconds = 0;
+      const showWait = () => bubble.innerHTML =
+              '<span class="spinner-border spinner-border-sm"></span> L\'agent réfléchit... ' + seconds + ' s';
+      showWait();
+      const timer = setInterval(() => { seconds++; showWait(); }, 1000);
+      setBusy(true);
+
+      try {
+        // 3. Appel de l'endpoint existant du TP 2 : GET /agent?message=...
+        //    encodeURIComponent protège les espaces, accents et '?' dans l'URL
+        const res = await fetch('/agent?message=' + encodeURIComponent(question));
+        // 4. La bulle d'attente est remplacée par la réponse (ou par un message d'erreur)
+        if (res.ok) {
+          // Markdown -> HTML (marked), puis nettoyage (DOMPurify) avant de l'insérer
+          bubble.innerHTML = DOMPurify.sanitize(marked.parse(await res.text()));
+        } else {
+          bubble.textContent = 'Erreur HTTP ' + res.status;
+        }
+      } catch (err) {
+        // Serveur arrêté ou injoignable
+        bubble.textContent = "Impossible de joindre l'agent.";
+      }
+
+      clearInterval(timer);             // 5. Arrête le compteur et réactive la saisie
+      setBusy(false);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Crée une bulle stylée avec les classes Bootstrap, l'ajoute et la renvoie
+    function addMessage(type, text) {
+      const div = document.createElement('div');
+      // Utilisateur : à droite en bleu / Agent : à gauche en gris
+      div.className = type === 'user'
+              ? 'msg align-self-end bg-primary text-white rounded-3 px-3 py-2'
+              : 'msg align-self-start bg-body-secondary rounded-3 px-3 py-2';
+      div.textContent = text;   // textContent : le texte est affiché tel quel (pas d'injection HTML)
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;   // Défile automatiquement vers le dernier message
+      return div;
+    }
+
+    // Bloque les boutons pendant l'attente : une seule question à la fois
+    function setBusy(busy) {
+      document.querySelectorAll('button, input').forEach(el => el.disabled = busy);
+      if (!busy) input.focus();
+    }
+</script>
+</body>
+</html>

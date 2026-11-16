@@ -16,7 +16,7 @@ public class Gestioncatalogue5dsGr1Application {
         SpringApplication.run(Gestioncatalogue5dsGr1Application.class, args);
     }
 
-    @Bean
+   //@Bean
     CommandLineRunner commandLineRunner(ProduitRepository produitRepository,
                                         CategorieRepository categorieRepository)
     {
