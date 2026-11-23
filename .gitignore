@@ -25,3 +25,4 @@ logs/
 .DS_Store
 Thumbs.dbsrc/main/resources/application.properties
 src/main/resources/application.properties
+MCP-Server/src/main/resources/application.properties
